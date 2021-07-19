@@ -55,7 +55,7 @@ void UClientWindowCapturer::OnChangeTexture(UTexture2D* _NewTexture)
 void UClientWindowCapturer::OnUpdateStream(TArray<uint8> CompressedBitmap)
 {
 	counter++;
-	UE_LOG(LogTemp, Warning, TEXT("Update stream"));
+	UE_LOG(LogTemp, Verbose, TEXT("Update stream"));
 
 	UpdateStream.Broadcast(CompressedBitmap);
 }

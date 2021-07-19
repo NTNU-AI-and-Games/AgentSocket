@@ -34,6 +34,7 @@ public class AgentSocket : ModuleRules
 				"JsonUtilities",
 				"InputCore",
 				"Engine",
+				"ImageWrapper",
 			}
 			);
 			

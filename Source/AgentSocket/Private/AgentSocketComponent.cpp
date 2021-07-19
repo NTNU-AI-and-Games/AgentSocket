@@ -44,54 +44,34 @@ UAgentSocketComponent::UAgentSocketComponent() {}
 
 void UAgentSocketComponent::OnMessageReceived(FString Message)
 {
-	UE_LOG(LogSockets, Warning, TEXT("AgentSocket>> Received %s"), *Message);
+	UE_LOG(LogSockets, Verbose, TEXT("AgentSocket>> Received %s"), *Message);
 
 	// Split messages, and use only the first
 	TArray<FString> Messages = SplitJSONMessages(Message);
 	FString Msg = Messages[0];
+	//UE_LOG(LogSockets, Error, TEXT("AgentSocket>> Message: %s"), *Msg)
 
 	// If is ActionMapping
-	FAgentAction Action;
-	if (!ParseMessage(Msg, Action)) {
+	if (!AgentActionHandler->ParseMessage(Msg)) {
 		RespondError(TEXT("Request is not properly formatted"));
-	}
-	else {
-		if (RunAction(Action)) {
+	} else {
+		if (AgentActionHandler->RunActions()) {
 			SendStepResponse();
-			//RespondSuccess();
-		}
-		else {
+		} else {
 			RespondError(TEXT("Action properly formatted but failed to act"));
 		}
 	}
-}
-
-
-bool UAgentSocketComponent::ParseMessage(FString Message, struct FAgentAction& OutAction)
-{
-	FAgentAction Action;
-
-	// Automatically convert json to struct with FJsonObjectConverter::JsonObjectStringToUStruct()
-	// Note: It matches enums with string (not int)
-	if (FJsonObjectConverter::JsonObjectStringToUStruct<FAgentAction>(*Message, &Action, 0, 0)) {
-		OutAction = Action;
-	}
-	else {
-		UE_LOG(LogSockets, Error, TEXT("AgentSocket>> JSON payload is not properly formatted"));
-		return false;
-	}
-	return true;
 }
 
 // Called when the game starts or when spawned
 void UAgentSocketComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	APawn* Pawn = Cast<APawn>(GetOwner());
+	APlayerController* PlayerController = Cast<APlayerController>(GetOwner());
 
 	// Do not run if not controlled by the local player
 	if (GEngine->GetNetMode(GetWorld()) != NM_Client) return;
-	if (!Pawn->IsLocallyControlled()) return;
+	if (!PlayerController->IsLocalPlayerController()) return;
 
 
 	// Create TCP Socket
@@ -110,6 +90,10 @@ void UAgentSocketComponent::BeginPlay()
 	ClientWindowCapturer->Properties = Properties.Capturer;
 	ClientWindowCapturer->Start();
 	Environment = NewObject<UAgentEnvironment>(this);
+	AgentActionHandler = NewObject<UAgentActionHandler>(this);
+
+	UPlayerInput* PlayerInput = Cast<APlayerController>(GetOwner())->PlayerInput;
+	AgentActionHandler->Initialize(PlayerInput);
 
 	// Bind texture change event
 	ClientWindowCapturer->UpdateStream.AddDynamic(this, &UAgentSocketComponent::OnUpdateStream);
@@ -135,60 +119,9 @@ bool UAgentSocketComponent::RespondError(FString ErrorMessage)
 }
 
 
-bool UAgentSocketComponent::RunAction(FAgentAction& Action)
+bool UAgentSocketComponent::RunActions()
 {
-	if (Action.Type == EAgentActionType::ACTION) {
-		// Do the action
-		FViewport* Viewport = GEngine->GameViewport->Viewport;
-		/*FViewportClient* Client = Viewport->GetClient();
-		Client->InputAxis(Viewport, 0, EKeys::MouseX, EInputEvent::IE_Axis, 0.5);*/
-
-		FViewportClient* Client = Viewport->GetClient();
-
-
-		/*UPlayerInput* playerInput = Cast<APlayerController>(Cast<APawn>(GetOwner())->Controller)->PlayerInput;
-		FKey a = playerInput->ActionMappings[1].Key;
-		FKey FirstFoundKey = playerInput->GetKeysForAction(Action.Name)[0].Key;*/
-
-		// Get the first key mapping of the action, and input key
-		UPlayerInput* playerInput = Cast<APlayerController>(Cast<APawn>(GetOwner())->Controller)->PlayerInput;
-		//FInputActionKeyMapping mapping = playerInput->ActionMappings[0];
-		if (playerInput->GetKeysForAction(Action.Name).Num() > 0) {
-			FInputActionKeyMapping mapping = playerInput->GetKeysForAction(Action.Name)[0];
-			FKey key = mapping.Key;
-
-			if (mapping.bShift) {
-				playerInput->InputKey(EKeys::LeftShift, EInputEvent::IE_Pressed, 1, 0);
-			}
-			if (mapping.bCtrl) {
-				playerInput->InputKey(EKeys::LeftControl, EInputEvent::IE_Pressed, 1, 0);
-			}
-			if (mapping.bAlt) {
-				playerInput->InputKey(EKeys::LeftAlt, EInputEvent::IE_Pressed, 1, 0);
-			}
-			if (mapping.bCmd) {
-				playerInput->InputKey(EKeys::LeftCommand, EInputEvent::IE_Pressed, 1, 0);
-			}
-			playerInput->InputKey(key, EInputEvent::IE_Pressed, 1, 0);
-		}
-	}
-	return true;
-}
-
-
-bool UAgentSocketComponent::SendState(FStateResponse StateResponse)
-{
-	FString Json;
-	FJsonObjectConverter::UStructToJsonObjectString<FStateResponse>(StateResponse, Json);
-	return TCPSocket->SendMessage(Json);
-}
-
-
-bool UAgentSocketComponent::SendReward(FRewardResponse RewardResponse)
-{
-	FString Json;
-	FJsonObjectConverter::UStructToJsonObjectString<FRewardResponse>(RewardResponse, Json);
-	return TCPSocket->SendMessage(Json);
+	return AgentActionHandler->RunActions();
 }
 
 
@@ -238,15 +171,42 @@ bool UAgentSocketComponent::RunSomething()
 }
 
 
+class AGENTSOCKET_API FSendTask : public FNonAbandonableTask
+{
+	friend class FAsyncTask<FSendTask>;
+public:
+	FSendTask(TFunction<bool()> InSendFunc) :SendFunc(InSendFunc) {};
+	~FSendTask() {};
+
+	void DoWork() {
+		SendFunc();
+	}
+
+	FORCEINLINE TStatId GetStatId() const
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FTCPSocketSendTask, STATGROUP_ThreadPoolAsyncTasks);
+	}
+
+private:
+	TFunction<bool()> SendFunc;
+};
+
+
 bool UAgentSocketComponent::SendStepResponse()
 {
-	FString Json;
-	FJsonObjectConverter::UStructToJsonObjectString<FStepResponse>(Environment->Response, Json);
+	FAsyncTask<FSendTask>* SendTask = new FAsyncTask<FSendTask>([this] {
+		FString Json;
+		FJsonObjectConverter::UStructToJsonObjectString<FStepResponse>(Environment->Response, Json); // TODO: Improve performance of this
 
-	// Reset Responses
-	Environment->Response.Reward.value = Properties.RewardDefaultValue;
+		// Reset Responses
+		Environment->Response.Reward.value = Properties.RewardDefaultValue;
 
-	return TCPSocket->SendMessage(Json);
+		return TCPSocket->SendMessage(Json);
+	});
+	SendTask->StartBackgroundTask();
+
+	// TODO: Return false for failed sending
+	return true;
 }
 
 

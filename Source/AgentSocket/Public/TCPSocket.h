@@ -23,7 +23,7 @@ public:
 	static uint8 ID;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TCP Socket")
-		FString IP = "127.0.0.1";
+		FString IP = "0.0.0.0";
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TCP Socket")
 		int Port = 11111;
 

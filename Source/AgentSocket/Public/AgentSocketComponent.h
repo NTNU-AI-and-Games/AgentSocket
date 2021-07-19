@@ -40,10 +40,12 @@ public:
 	UPROPERTY(BlueprintReadOnly) // Setting UPROPERTY is needed to prevent UObject being garbage collected automatically
 		UAgentEnvironment* Environment;
 
+	UPROPERTY(BlueprintReadOnly) // Setting UPROPERTY is needed to prevent UObject being garbage collected automatically
+		UAgentActionHandler* AgentActionHandler;
+
 	UFUNCTION()
 		virtual void OnMessageReceived(FString Message);
-	UFUNCTION()
-		virtual bool ParseMessage(FString Message, struct FAgentAction& OutAction);
+
 	UFUNCTION(BlueprintCallable, Category = "Agent Socket")
 		bool RespondSuccess();
 	UFUNCTION(BlueprintCallable, Category = "Agent Socket")
@@ -59,12 +61,7 @@ public:
 public:
 
 	UFUNCTION(BlueprintCallable, Category = "Agent Socket")
-		bool RunAction(FAgentAction& Action);
-
-	UFUNCTION(BlueprintCallable, Category = "Agent Socket")
-		bool SendState(FStateResponse StateResponse);
-	UFUNCTION(BlueprintCallable, Category = "Agent Socket")
-		bool SendReward(FRewardResponse RewardResponse);
+		bool RunActions();
 
 	UFUNCTION(BlueprintCallable, Category = "Agent Socket")
 		bool SendStepResponse();

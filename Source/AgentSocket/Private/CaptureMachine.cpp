@@ -12,6 +12,8 @@
 #endif
 #include <Runtime/Engine/Public/HighResScreenshot.h>
 #include <Runtime/Engine/Public/ImageUtils.h>
+#include <IImageWrapper.h>
+#include <IImageWrapperModule.h>
 
 
 UCaptureMachine::UCaptureMachine()
@@ -103,6 +105,25 @@ TArray<FColor> UCaptureMachine::GetBitmapBufferCopy() {
 }
 
 
+bool CompressImage(const TArray< uint8 >& InUncompressedData, const int32 InWidth, const int32 InHeight, TArray< uint8 >& OutCompressedData)
+{
+	bool bSucceeded = false;
+	OutCompressedData.Reset();
+	if (InUncompressedData.Num() > 0)
+	{
+		IImageWrapperModule& ImgWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
+		TSharedPtr<IImageWrapper> ImageWrapper = ImgWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+		if (ImageWrapper.IsValid() && ImageWrapper->SetRaw(&InUncompressedData[0], InUncompressedData.Num(), InWidth, InHeight, ERGBFormat::Gray, 8))
+		{
+			OutCompressedData = ImageWrapper->GetCompressed();
+			bSucceeded = true;
+		}
+	}
+
+	return bSucceeded;
+}
+
+
 bool UCaptureMachine::DoCapture()
 {
 #if PLATFORM_WINDOWS
@@ -138,12 +159,25 @@ bool UCaptureMachine::DoCapture()
 	// Compress and broadcast
 
 	TArray<FColor> colorBitmap = GetBitmapBufferCopy();
-	TArray<FColor> dst;
+	TArray<FColor> resizedBitmap;
+	TArray<uint8> grayscale;
 	TArray<uint8> compressedBitmap;
-	int compressX = 592;
-	int compressY = 352;
-	FImageUtils::ImageResize(m_WindowSize.X, m_WindowSize.Y, colorBitmap, compressX, compressY, dst, true);
-	FImageUtils::CompressImageArray(compressX, compressY, dst, compressedBitmap);
+	int compressX = 296;
+	int compressY = 176;
+	FImageUtils::ImageResize(m_WindowSize.X, m_WindowSize.Y, colorBitmap, compressX, compressY, resizedBitmap, true);
+	//FImageUtils::CompressImageArray(compressX, compressY, dst, compressedBitmap);
+
+
+	// Compress to grayscale
+
+	int32 MemorySize = compressX * compressY * 1;
+	grayscale.AddUninitialized(MemorySize);
+	for (int32 i = 0; i < compressX * compressY; i++)
+	{
+		grayscale[i] = (uint8)(resizedBitmap[i].R * 0.299 + resizedBitmap[i].G * 0.587 + resizedBitmap[i].B * 0.114);
+	}
+	// Compress data - convert into a .png
+	CompressImage(grayscale, compressX, compressY, compressedBitmap);
 	OnUpdateStream.Broadcast(compressedBitmap);
 #endif
 
