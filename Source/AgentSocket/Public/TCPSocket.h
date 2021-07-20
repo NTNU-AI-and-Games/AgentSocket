@@ -67,94 +67,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "TCP Socket")
 		bool SendMessage(FString Message);
 
+	// Send raw bytes to connected client
+	UFUNCTION(BlueprintCallable, Category = "TCP Socket")
+		bool SendBinary(TArray<uint8> &BinaryArray);
+
 	UFUNCTION(/*BlueprintImplementableEvent, */Category = "TCP Socket")
 		void MessageReceived(const FString& Message);
 
 };
-
-
-//
-//typedef struct	Fs_SocketContent
-//{
-//	FSocket* ConnectSocket;
-//	FIPv4Endpoint	Address;
-//	FString		Buffer;
-//	bool		NewMessage;
-//}				FSocketContent;
-//
-//
-//UENUM()
-//enum FCommand
-//{
-//	PAUSE = 0,
-//	UNPAUSE = 1,
-//	MOVE = 2,
-//	SAY = 3,
-//	QUIT = 4,
-//	UNKNOWN
-//};
-//
-//
-//
-//UCLASS()
-//class MYPROJECT2_API ATest_Socket : public AActor
-//{
-//	GENERATED_BODY()
-//	
-//public:	
-//	// Sets default values for this actor's properties
-//	ATest_Socket();
-//
-//	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Container")
-//		TArray<FString> BufferList;
-//	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Notifyer")
-//		bool	NewMessage;
-//	TArray<FSocketContent>	SocketList;
-//	FSocket* ListenerSocket;
-//	FSocket* ConnectSocket;
-//	FIPv4Endpoint	RemoteAddress;
-//
-//	bool	FormatIP4ToNumber(const FString& TheIp, uint8(&Out)[4]);
-//	FSocket* CreateTCPConnectionListener(const FString& SocketName, const FString& TheIp, uint32 ThePort, uint32 BufferSize = 2 * 1024 * 1024);
-//	bool	StartTCPReceiver(const FString& SocketName, const FString& TheIp, uint32 ThePort);
-//	void	TCPConnectionListener();
-//	FString	StringFromBinaryArray(const TArray<uint8>& BinArray);
-//	FString	GetCommandWithoutID(const FString& FullMessage);
-//
-//	// Sets default values for this pawn's properties
-//	ATest_Socket();
-//
-//	// Called when the game starts or when spawned
-//	virtual void BeginPlay() override;
-//
-//	// Called when the game ends
-//	virtual void EndPlay(EEndPlayReason::Type EndPlayReason) override;
-//
-//	// Called every frame
-//	virtual void Tick(float DeltaSeconds) override;
-//
-//	// Called to bind functionality to input
-//	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
-//
-//	UFUNCTION(BlueprintCallable, Category = "Online")
-//		bool	SendStringToClient(int32 ClientID, const FString MessageToSend);
-//	UFUNCTION(BlueprintCallable, Category = "Online")
-//		int32	GetClientIDFromLastMessage(const FString LastMessage);
-//	UFUNCTION(BlueprintCallable, Category = "Parser")
-//		bool	AskPause(const FString LastMessage);
-//	UFUNCTION(BlueprintCallable, Category = "Init")
-//		bool	CreateSocketConnection(const FString& SocketName, const FString& TheIP, int32 ThePort);
-//	UFUNCTION(BlueprintCallable, Category = "Parser")
-//		FCommand	ParseReceivedMessage(const FString& Message);
-//	UFUNCTION(BlueprintCallable, Category = "Online")
-//		void	TCPSocketListener();
-//
-//protected:
-//	// Called when the game starts or when spawned
-//	virtual void BeginPlay() override;
-//
-//public:	
-//	// Called every frame
-//	virtual void Tick(float DeltaTime) override;
-//
-//};

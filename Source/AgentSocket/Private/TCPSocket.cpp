@@ -171,7 +171,19 @@ bool UTCPSocket::SendMessage(FString ToSend) {
 		return (!ConnectionSocket->Send(ResultChars, Size, Sent));
 	}
 	else {
-		UE_LOG(LogSockets, Error, TEXT("AgentSocket>> No agent is conencted. Send is not performed"));
+		UE_LOG(LogSockets, Verbose, TEXT("TCPSocket>> No Client is connected. Send is not performed"));
+		return false;
+	}
+}
+
+bool UTCPSocket::SendBinary(TArray<uint8> &BinaryArray) {
+	int32 Sent = 0;
+	uint8* ResultChars = BinaryArray.GetData();
+	if (ConnectionSocket) {
+		return (!ConnectionSocket->Send(ResultChars, BinaryArray.Num(), Sent));
+	}
+	else {
+		UE_LOG(LogSockets, Verbose, TEXT("TCPSocket>> No Client is connected. Send is not performed"));
 		return false;
 	}
 }

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "CaptureMachineProperties.h"
+#include "ViewportCapturerProperties.h"
 #include "AgentSocketProperties.generated.h"
 
 /**
@@ -20,9 +20,7 @@ struct AGENTSOCKET_API FAgentSocketProperties
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		int RewardDefaultValue = -1;
 
-	// Settings of the window capturer
+	// Settings of the viewport capturer
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FCaptureMachineProperties Capturer;
-
-
+		FViewportCapturerProperties ViewportCapturer;
 };

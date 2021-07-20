@@ -32,13 +32,14 @@ class AGENTSOCKET_API UAgentEnvironment : public UObject
 	
 public:
 	void SetState();
-	void SetScreenShot(TArray<uint8> CompressedBitmap);
+	void SetScreenShot(const TArray<uint8>& CompressedBitmap);
 	int GetReward();
 	void SetReward(int value);
 	void ResetReward();
 
 	// Should return the a threadsafe response
 	FStepResponse Response;
+	TArray<uint8> ImageResponse;
 
 protected:
 	void BeginDestroy();
