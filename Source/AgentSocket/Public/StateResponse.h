@@ -32,7 +32,4 @@ struct AGENTSOCKET_API FStateResponse
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AgentSocket|Update")
 		FString value = "";
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AgentSocket|Update")
-		TArray<uint8> imageValue;
 };

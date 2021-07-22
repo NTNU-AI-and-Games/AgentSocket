@@ -7,6 +7,7 @@
 #include "Sockets.h"
 #include "Networking.h"
 #include "GameFramework/PlayerInput.h"
+#include "InputCoreTypes.h"
 #include "AgentAction.generated.h"
 
 
@@ -42,6 +43,10 @@ struct AGENTSOCKET_API FAgentAction
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AgentSocket")
 		FName Name = "";
 
+	// The keys has to be passed in as shown in https://docs.unrealengine.com/4.26/en-US/API/Runtime/InputCore/EKeys/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AgentSocket")
+		FKey Key = EKeys::Invalid;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AgentSocket")
 		FString Value = "";
 };
@@ -53,7 +58,7 @@ struct AGENTSOCKET_API FAgentActions
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AgentSocket")
-		EAgentRequestType Type;
+		EAgentRequestType Type = EAgentRequestType::ACTION;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AgentSocket")
 		TArray<FAgentAction> Actions;
@@ -81,7 +86,7 @@ public:
 	UFUNCTION()
 		bool RunActions();
 	UFUNCTION()
-		bool RunAction(FAgentAction &Action);
+		bool RunAction(const FAgentAction &Action);
 	UFUNCTION()
 		bool ParseMessage(FString Message);
 

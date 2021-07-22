@@ -35,6 +35,7 @@ public class AgentSocket : ModuleRules
 				"InputCore",
 				"Engine",
 				"ImageWrapper",
+				"RenderCore", "MovieSceneCapture",
 			}
 			);
 			
@@ -49,8 +50,14 @@ public class AgentSocket : ModuleRules
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);
-		
-		
+
+
+		if (Target.bBuildEditor == true)
+		{
+			//reference the module "MyModule"
+			PrivateDependencyModuleNames.Add("UnrealEd");
+		}
+
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[]
 			{

@@ -39,7 +39,21 @@ TArray<FString> SplitJSONMessages(FString& JSONMessages) {
 }
 
 
-UAgentSocketComponent::UAgentSocketComponent() {}
+UAgentSocketComponent::UAgentSocketComponent() {
+	PrimaryComponentTick.bCanEverTick = true;
+}
+
+
+void UAgentSocketComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	if (AgentActionHandler) {
+		AgentActionHandler->RunActions();
+	}
+	if (ViewportCapturer) {
+		ViewportCapturer->TickGrab();
+	}
+}
 
 
 void UAgentSocketComponent::OnMessageReceived(FString Message)
@@ -63,7 +77,7 @@ void UAgentSocketComponent::OnMessageReceived(FString Message)
 	}
 }
 
-// Called when the game starts or when spawned
+
 void UAgentSocketComponent::BeginPlay()
 {
 	Super::BeginPlay();
@@ -84,19 +98,16 @@ void UAgentSocketComponent::BeginPlay()
 		UE_LOG(LogSockets, Error, TEXT("AgentSocket>> Failed to launch TCP socket for AgentSocket"))
 	}
 
-
-	// Create ClientWindowCapturer
-	ClientWindowCapturer = NewObject<UClientWindowCapturer>(this);
-	ClientWindowCapturer->Properties = Properties.Capturer;
-	ClientWindowCapturer->Start();
+	UPlayerInput* PlayerInput = Cast<APlayerController>(GetOwner())->PlayerInput;
+	
 	Environment = NewObject<UAgentEnvironment>(this);
 	AgentActionHandler = NewObject<UAgentActionHandler>(this);
-
-	UPlayerInput* PlayerInput = Cast<APlayerController>(GetOwner())->PlayerInput;
 	AgentActionHandler->Initialize(PlayerInput);
 
-	// Bind texture change event
-	ClientWindowCapturer->UpdateStream.AddDynamic(this, &UAgentSocketComponent::OnUpdateStream);
+	ViewportCapturer = NewObject<UViewportCapturer>(this);
+	ViewportCapturer->Properties = Properties.ViewportCapturer;
+	ViewportCapturer->OnImageReady.AddDynamic(this, &UAgentSocketComponent::OnUpdateStream);
+	ViewportCapturer->StartFrameGrab();
 }
 
 
@@ -136,8 +147,6 @@ bool UAgentSocketComponent::RunSomething()
 
 	UE_LOG(LogSockets, Warning, TEXT("AgentSocket>> Running some command"));
 	FViewport* Viewport = GEngine->GameViewport->Viewport;
-	/*FViewportClient* Client = Viewport->GetClient();
-	Client->InputAxis(Viewport, 0, EKeys::MouseX, EInputEvent::IE_Axis, 0.5);*/
 
 	FViewportClient* Client = Viewport->GetClient();
 
@@ -194,23 +203,11 @@ private:
 
 bool UAgentSocketComponent::SendStepResponse()
 {
-	FAsyncTask<FSendTask>* SendTask = new FAsyncTask<FSendTask>([this] {
-		FString Json;
-		FJsonObjectConverter::UStructToJsonObjectString<FStepResponse>(Environment->Response, Json); // TODO: Improve performance of this
-
-		// Reset Responses
-		Environment->Response.Reward.value = Properties.RewardDefaultValue;
-
-		return TCPSocket->SendMessage(Json);
-	});
-	SendTask->StartBackgroundTask();
-
-	// TODO: Return false for failed sending
-	return true;
+	return TCPSocket->SendBinary(Environment->ImageResponse);
 }
 
 
-void UAgentSocketComponent::OnUpdateStream(TArray<uint8> CompressedBitmap)
+void UAgentSocketComponent::OnUpdateStream(const TArray<uint8>& CompressedBitmap)
 {
 	Environment->SetScreenShot(CompressedBitmap);
 }

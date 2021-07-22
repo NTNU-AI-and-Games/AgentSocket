@@ -27,16 +27,21 @@ bool UAgentActionHandler::Initialize(UPlayerInput* InPlayerInput)
 
 bool UAgentActionHandler::RunActions()
 {
-	for (FAgentAction Action : Actions.Actions)
-	{
+	// Run all actions that is stored in the Actions property
+	for (int i = Actions.Actions.Num(); i-- > 0;) {
+		FAgentAction Action = Actions.Actions[i];
 		RunAction(Action);
+		
+		// If the action should call only once, remove it after
+		if (Action.State == EAgentActionState::ONCE) {
+			Actions.Actions.RemoveAt(i);
+		}
 	}
-
 	return true;
 }
 
 
-bool UAgentActionHandler::RunAction(FAgentAction &Action)
+bool UAgentActionHandler::RunAction(const FAgentAction &Action)
 {
 	if (Action.Type == EAgentActionType::ACTION) {
 		// Get the first key hook of the action with matching name, and input the key
@@ -57,6 +62,15 @@ bool UAgentActionHandler::RunAction(FAgentAction &Action)
 				PlayerInput->InputKey(EKeys::LeftCommand, EInputEvent::IE_Pressed, 1, 0);
 			}
 			PlayerInput->InputKey(key, EInputEvent::IE_Pressed, 1, 0);
+		}
+	} else if (Action.Type == EAgentActionType::AXIS) {
+		if (Action.Key != EKeys::Invalid) {
+			// TODO: We may want to change the "deltaTime" to be equal to frame delta time
+			PlayerInput->InputAxis(Action.Key, FCString::Atof(*Action.Value), 0.05, 1, false);
+		}
+	} else if (Action.Type == EAgentActionType::KEY) {
+		if (Action.Key != EKeys::Invalid) {
+			PlayerInput->InputKey(Action.Key, EInputEvent::IE_Pressed, 1, 0);
 		}
 	}
 	return true;

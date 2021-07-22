@@ -15,15 +15,9 @@ int UAgentEnvironment::GetReward()
 }
 
 
-bool SaveBitmapAsPNG(int32 sizeX, int32 sizeY, const TArray<FColor>& bitmapData, const FString& filePath) {
-	TArray<uint8> compressedBitmap;
-	FImageUtils::CompressImageArray(sizeX, sizeY, bitmapData, compressedBitmap);
-	return FFileHelper::SaveArrayToFile(compressedBitmap, *filePath);
-}
-
-
-void UAgentEnvironment::SetScreenShot(TArray<uint8> CompressedBitmap)
+void UAgentEnvironment::SetScreenShot(const TArray<uint8>& CompressedBitmap)
 {
-	Response.State.imageValue = CompressedBitmap;
+	//UE_LOG(LogTemp, Error, TEXT("After ss, time: %s"), *(FDateTime::Now().ToString(TEXT("%Y.%m.%d-%H:%M:%S.%s"))));
+	ImageResponse = CompressedBitmap;
 	return;
 }
