@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "ViewportCapturerProperties.h"
+#include "TCPSocketProperties.h"
 #include "AgentSocketProperties.generated.h"
 
 /**
@@ -20,7 +21,11 @@ struct AGENTSOCKET_API FAgentSocketProperties
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		int RewardDefaultValue = -1;
 
-	// Settings of the viewport capturer
+	// Settings for the viewport capturer
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FViewportCapturerProperties ViewportCapturer;
+
+	// Settings for the tcp socket
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "TCP Socket"))
+		FTCPSocketProperties TCPSocket;
 };

@@ -6,6 +6,7 @@
 #include "Networking.h"
 #include "Sockets.h"
 #include "SocketSubsystem.h"
+#include "TCPSocketProperties.h"
 #include "TCPSocket.generated.h"
 
 
@@ -22,10 +23,9 @@ public:
 
 	static uint8 ID;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TCP Socket")
-		FString IP = "0.0.0.0";
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TCP Socket")
-		int Port = 11111;
+	// This has to be set before start
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = TCPSocket)
+		FTCPSocketProperties Properties;
 
 	UPROPERTY(BlueprintAssignable)
 		FOnMessageReceived OnMessageReceived;

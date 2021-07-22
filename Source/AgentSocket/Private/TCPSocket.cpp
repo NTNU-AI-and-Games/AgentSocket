@@ -16,7 +16,7 @@ uint8 UTCPSocket::ID = 0;
 void UTCPSocket::BeginDestroy()
 {
 	Super::BeginDestroy();
-	UE_LOG(LogTemp, Warning, TEXT("TCPSocket>> Destroyed (port:%d)"), Port);
+	UE_LOG(LogTemp, Warning, TEXT("TCPSocket>> Destroyed (port:%d)"), Properties.Port);
 	if (GEngine != nullptr) {
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::Printf(TEXT("TCP_Socket>> HUH")));
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("TCP_Socket>> Destroyed (port:%d)"), Port));
@@ -37,8 +37,7 @@ bool UTCPSocket::LaunchTCP()
 	// Run only on clients; will NOT run in single player / standalone
 	if (GEngine->GetNetMode(World) == NM_Client)
 	{
-		Port += ID++;
-		UE_LOG(LogSockets, Warning, TEXT("TCPSocket>> Creating TCP socket at port %d, time: %s"), Port, *(FDateTime::Now().ToString(TEXT("%Y.%m.%d-%H:%M:%S.%s"))));
+		UE_LOG(LogSockets, Warning, TEXT("TCPSocket>> Creating TCP socket at port %d, time: %s"), Properties.Port, *(FDateTime::Now().ToString(TEXT("%Y.%m.%d-%H:%M:%S.%s"))));
 		if (!StartTCPReceiver("TCP Socket")) {
 			UE_LOG(LogTemp, Warning, TEXT("TCPSocket>> Failed to create TCP socket"));
 			return false;
@@ -56,13 +55,13 @@ bool UTCPSocket::StartTCPReceiver(const FString& SocketName) {
 	if (!ListenerSocket)
 	{
 		// Possible cause: port number is already taken.
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("TCPSocket>> Listen socket could not be created! ~> %s %d"), *IP, Port));
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("TCPSocket>> Listen socket could not be created! ~> %s %d"), *Properties.IP, Properties.Port));
 		return false;
 	}
 
 	// Start the Listener
 	World->GetTimerManager().SetTimer(TCPConnectionListenerTimerHandle, this, &UTCPSocket::TCPConnectionListener, 1.0f, true);
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("TCPSocket>> TCP socket created at port %d"), Port));
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("TCPSocket>> TCP socket created at port %d"), Properties.Port));
 	return true;
 }
 
@@ -92,10 +91,10 @@ bool UTCPSocket::FormatIP4ToNumber(const FString& _IP, uint8(&Out)[4])
 FSocket* UTCPSocket::CreateTCPConnectionListener(const FString& SocketName, const int32 ReceiveBufferSize)
 {
 	uint8 IP4Nums[4];
-	if (!FormatIP4ToNumber(IP, IP4Nums)) return false;
+	if (!FormatIP4ToNumber(Properties.IP, IP4Nums)) return false;
 
 	// Create Socket
-	FIPv4Endpoint Endpoint(FIPv4Address(IP4Nums[0], IP4Nums[1], IP4Nums[2], IP4Nums[3]), Port);
+	FIPv4Endpoint Endpoint(FIPv4Address(IP4Nums[0], IP4Nums[1], IP4Nums[2], IP4Nums[3]), Properties.Port);
 	FSocket* ListenSocket = FTcpSocketBuilder(*SocketName)
 		.AsReusable()
 		.BoundToEndpoint(Endpoint)
@@ -216,6 +215,6 @@ void UTCPSocket::TCPSocketListener()
 
 void UTCPSocket::MessageReceived(const FString& Message)
 {
-	UE_LOG(LogSockets, Warning, TEXT("TCPSocket>> (Port: %d) Message received at %s"), Port, *(FDateTime::Now().ToString(TEXT("%Y.%m.%d-%H:%M:%S.%s"))));
+	UE_LOG(LogSockets, Warning, TEXT("TCPSocket>> (Port: %d) Message received at %s"), Properties.Port, *(FDateTime::Now().ToString(TEXT("%Y.%m.%d-%H:%M:%S.%s"))));
 	OnMessageReceived.Broadcast(Message);
 }

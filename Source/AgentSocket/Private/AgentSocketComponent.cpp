@@ -47,11 +47,11 @@ UAgentSocketComponent::UAgentSocketComponent() {
 void UAgentSocketComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	if (AgentActionHandler) {
-		AgentActionHandler->RunActions();
-	}
 	if (ViewportCapturer) {
 		ViewportCapturer->TickGrab();
+	}
+	if (AgentActionHandler) {
+		AgentActionHandler->RunActions();
 	}
 }
 
@@ -90,6 +90,7 @@ void UAgentSocketComponent::BeginPlay()
 
 	// Create TCP Socket
 	TCPSocket = NewObject<UTCPSocket>(this);
+	TCPSocket->Properties = Properties.TCPSocket;
 	if (TCPSocket->LaunchTCP()) {
 		UE_LOG(LogSockets, Warning, TEXT("AgentSocket>> Created TCP socket for client"))
 			TCPSocket->OnMessageReceived.AddDynamic(this, &UAgentSocketComponent::OnMessageReceived);
