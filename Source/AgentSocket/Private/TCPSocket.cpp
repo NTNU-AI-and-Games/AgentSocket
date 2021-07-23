@@ -10,6 +10,7 @@ UTCPSocket::UTCPSocket()
 	World = GetOuter()->GetWorld();
 }
 
+
 uint8 UTCPSocket::ID = 0;
 
 
@@ -31,6 +32,7 @@ void UTCPSocket::BeginDestroy()
 	if (ListenerSocket != NULL) ListenerSocket->Close();
 }
 
+
 // TCP Server Code
 bool UTCPSocket::LaunchTCP()
 {
@@ -46,6 +48,7 @@ bool UTCPSocket::LaunchTCP()
 	}
 	return false;
 }
+
 
 // Start TCP Receiver
 bool UTCPSocket::StartTCPReceiver(const FString& SocketName) {
@@ -64,6 +67,7 @@ bool UTCPSocket::StartTCPReceiver(const FString& SocketName) {
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("TCPSocket>> TCP socket created at port %d"), Properties.Port));
 	return true;
 }
+
 
 // Format IPv4 String as Number Parts
 // Example "192.68.1.1" -> [192, 68, 1, 1]
@@ -87,6 +91,7 @@ bool UTCPSocket::FormatIP4ToNumber(const FString& _IP, uint8(&Out)[4])
 	return true;
 }
 
+
 // Create TCP Connection Listener
 FSocket* UTCPSocket::CreateTCPConnectionListener(const FString& SocketName, const int32 ReceiveBufferSize)
 {
@@ -106,6 +111,7 @@ FSocket* UTCPSocket::CreateTCPConnectionListener(const FString& SocketName, cons
 
 	return ListenSocket;
 }
+
 
 // TCP Connection Listener
 void UTCPSocket::TCPConnectionListener()
@@ -142,24 +148,18 @@ void UTCPSocket::TCPConnectionListener()
 	}
 }
 
+
 // String From Binary Array
 FString UTCPSocket::StringFromBinaryArray(TArray<uint8> BinaryArray)
 {
-
 	// Create a string from a byte array
 	const std::string cstr(reinterpret_cast<const char*>(BinaryArray.GetData()), BinaryArray.Num());
-
 	return FString(cstr.c_str());
-
-	// BinaryArray.Add(0); // Add 0 termination. Even if the string is already 0-terminated, it doesn't change the results.
-	// Create a string from a byte array. The string is expected to be 0 terminated (i.e. a byte set to 0).
-	// Use UTF8_TO_TCHAR if needed.
-	// If you happen to know the data is UTF-16 (USC2) formatted, you do not need any conversion to begin with.
-	// Otherwise you might have to write your own conversion algorithm to convert between multilingual UTF-16 planes.
-	// return FString(ANSI_TO_TCHAR(reinterpret_cast<const char*>(BinaryArray.GetData())));
 }
 
+
 bool UTCPSocket::SendMessage(FString ToSend) {
+	UE_LOG(LogSockets, Error, TEXT("josn2: %s"), *ToSend);
 	ToSend = ToSend + LINE_TERMINATOR; // For Matlab we need a defined line break (fscanf function) " " ist not working, therefore use the LINE_TERMINATOR macro form UE
 
 	TCHAR * SerializedChar = ToSend.GetCharArray().GetData();
@@ -174,6 +174,7 @@ bool UTCPSocket::SendMessage(FString ToSend) {
 		return false;
 	}
 }
+
 
 bool UTCPSocket::SendBinary(TArray<uint8> &BinaryArray) {
 	int32 Sent = 0;

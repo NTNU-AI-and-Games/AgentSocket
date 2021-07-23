@@ -118,12 +118,6 @@ void UAgentSocketComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 }
 
 
-bool UAgentSocketComponent::RespondSuccess()
-{
-	return TCPSocket->SendMessage(R"({"type":"ACK", "Status":"OK"})");
-}
-
-
 bool UAgentSocketComponent::RespondError(FString ErrorMessage)
 {
 	FString f = FString::Format(TEXT(R"({"type":"ACK", "Status":"Error", "ErrorMsg": "{0}"})"), { *ErrorMessage });
@@ -143,68 +137,43 @@ void UAgentSocketComponent::AddReward(int value)
 }
 
 
-bool UAgentSocketComponent::RunSomething()
+void UAgentSocketComponent::SetGameReset(bool bIsGameReset)
 {
+	Environment->Response.State.GameOver = bIsGameReset;
+}
 
-	UE_LOG(LogSockets, Warning, TEXT("AgentSocket>> Running some command"));
-	FViewport* Viewport = GEngine->GameViewport->Viewport;
-
-	FViewportClient* Client = Viewport->GetClient();
-
-
-	UPlayerInput* playerInput = Cast<APlayerController>(Cast<APawn>(GetOwner())->Controller)->PlayerInput;
-	FKey a = playerInput->ActionMappings[0].Key;
-
-	FInputActionKeyMapping mapping = playerInput->ActionMappings[0];
-	FKey key = mapping.Key;
-
-	playerInput->InputKey(key, EInputEvent::IE_Pressed, 1, 0);
-	if (mapping.bShift) {
-		playerInput->InputKey(EKeys::LeftShift, EInputEvent::IE_Pressed, 1, 0);
-	}
-	if (mapping.bCtrl) {
-		playerInput->InputKey(EKeys::LeftControl, EInputEvent::IE_Pressed, 1, 0);
-	}
-	if (mapping.bAlt) {
-		playerInput->InputKey(EKeys::LeftAlt, EInputEvent::IE_Pressed, 1, 0);
-	}
-	if (mapping.bCmd) {
-		playerInput->InputKey(EKeys::LeftCommand, EInputEvent::IE_Pressed, 1, 0);
-	}
-
-
-	UE_LOG(LogTemp, Warning, TEXT("length: %s"), *playerInput->ActionMappings[25].Key.GetDisplayName().ToString());
-	UE_LOG(LogTemp, Warning, TEXT("length: %d"), playerInput->ActionMappings.Num());
-	UE_LOG(LogTemp, Warning, TEXT("key: %s"), *a.GetDisplayName().ToString());
-
-	return true;
+void UAgentSocketComponent::SetGameOver(bool bIsGameOver)
+{
+	Environment->Response.State.GameReset = bIsGameOver;
 }
 
 
-class AGENTSOCKET_API FSendTask : public FNonAbandonableTask
-{
-	friend class FAsyncTask<FSendTask>;
-public:
-	FSendTask(TFunction<bool()> InSendFunc) :SendFunc(InSendFunc) {};
-	~FSendTask() {};
 
-	void DoWork() {
-		SendFunc();
-	}
-
-	FORCEINLINE TStatId GetStatId() const
-	{
-		RETURN_QUICK_DECLARE_CYCLE_STAT(FTCPSocketSendTask, STATGROUP_ThreadPoolAsyncTasks);
-	}
-
-private:
-	TFunction<bool()> SendFunc;
-};
 
 
 bool UAgentSocketComponent::SendStepResponse()
 {
-	return TCPSocket->SendBinary(Environment->ImageResponse);
+	AsyncTask(ENamedThreads::AnyHiPriThreadHiPriTask, [this]() mutable
+	{
+		FString Json;
+
+		// TODO: Improve performance of this. UStructToJsonObjectString is slow
+		FJsonObjectConverter::UStructToJsonObjectString<FStepResponse>(Environment->Response, Json);
+		UE_LOG(LogTemp, Error, TEXT("json: %s"), *Json);
+
+		// Send the JSON
+		bool bSuccessJson = TCPSocket->SendMessage(Json);
+
+		// Reset environment json responses
+		Environment->Response.Reward.value = Properties.RewardDefaultValue;
+		Environment->Response.State.GameOver = false;
+		Environment->Response.State.GameReset = false;
+
+		// Send the Image
+		//bool bSuccessImage = TCPSocket->SendBinary(Environment->ImageResponse);
+
+	});
+	return true;
 }
 
 

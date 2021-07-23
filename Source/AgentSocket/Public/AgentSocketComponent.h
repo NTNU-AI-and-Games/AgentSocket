@@ -46,13 +46,20 @@ public:
 	UFUNCTION()
 	virtual void OnMessageReceived(FString Message);
 
-	UFUNCTION(BlueprintCallable, Category = "Agent Socket")
-		bool RespondSuccess();
-	UFUNCTION(BlueprintCallable, Category = "Agent Socket")
-		bool RespondError(FString ErrorMessage = "");
+	//UFUNCTION(BlueprintCallable, Category = "Agent Socket")
+	//	bool RespondSuccess();
+	//UFUNCTION(BlueprintCallable, Category = "Agent Socket")
+	//	bool RespondError(FString ErrorMessage = "");
 
 	UFUNCTION(BlueprintCallable, Category = "Agent Socket")
 		void AddReward(int value);
+	UFUNCTION(BlueprintCallable, Category = "Agent Socket")
+		void SetGameReset(bool bIsGameReset);
+	UFUNCTION(BlueprintCallable, Category = "Agent Socket")
+		void SetGameOver(bool bIsGameOver);
+
+	UFUNCTION(BlueprintCallable, Category = "Agent Socket")
+		bool RespondError(FString ErrorMessage = "");
 
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Agent Socket")
@@ -66,9 +73,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Agent Socket")
 		bool SendStepResponse();
 
-
-	UFUNCTION(BlueprintCallable, Category = "Agent Socket")
-		bool RunSomething();
 
 	UFUNCTION()
 		void OnUpdateStream(const TArray<uint8>& CompressedBitmap);
