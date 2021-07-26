@@ -153,13 +153,12 @@ void UAgentSocketComponent::SetGameOver(bool bIsGameOver)
 
 bool UAgentSocketComponent::SendStepResponse()
 {
-	AsyncTask(ENamedThreads::AnyHiPriThreadHiPriTask, [this]() mutable
+	AsyncTask(ENamedThreads::AnyHiPriThreadHiPriTask, [this]()
 	{
 		FString Json;
 
 		// TODO: Improve performance of this. UStructToJsonObjectString is slow
 		FJsonObjectConverter::UStructToJsonObjectString<FStepResponse>(Environment->Response, Json);
-		UE_LOG(LogTemp, Error, TEXT("json: %s"), *Json);
 
 		// Send the JSON
 		bool bSuccessJson = TCPSocket->SendMessage(Json);
@@ -170,7 +169,7 @@ bool UAgentSocketComponent::SendStepResponse()
 		Environment->Response.State.GameReset = false;
 
 		// Send the Image
-		//bool bSuccessImage = TCPSocket->SendBinary(Environment->ImageResponse);
+		bool bSuccessImage = TCPSocket->SendBinary(Environment->ImageResponse);
 
 	});
 	return true;

@@ -143,7 +143,11 @@ void UTCPSocket::TCPConnectionListener()
 			// Global cache of current Remote Address
 			RemoteAddressForConnection = FIPv4Endpoint(RemoteAddress);
 
-			World->GetTimerManager().SetTimer(TCPSocketListenerTimerHandle, this, &UTCPSocket::TCPSocketListener, 0.1f, true);
+			// Set Buffer Size
+			int32 NewSize = 0;
+			ConnectionSocket->SetSendBufferSize(2 * 1024 * 1024, NewSize);
+
+			World->GetTimerManager().SetTimer(TCPSocketListenerTimerHandle, this, &UTCPSocket::TCPSocketListener, 0.01f, true);
 		}
 	}
 }
@@ -159,15 +163,13 @@ FString UTCPSocket::StringFromBinaryArray(TArray<uint8> BinaryArray)
 
 
 bool UTCPSocket::SendMessage(FString ToSend) {
-	UE_LOG(LogSockets, Error, TEXT("josn2: %s"), *ToSend);
-	ToSend = ToSend + LINE_TERMINATOR; // For Matlab we need a defined line break (fscanf function) " " ist not working, therefore use the LINE_TERMINATOR macro form UE
-
+	ToSend = ToSend + LINE_TERMINATOR; // Add LINE_TERMINATOR macro provide better compatibility
 	TCHAR * SerializedChar = ToSend.GetCharArray().GetData();
 	int32 Size = FCString::Strlen(SerializedChar);
 	int32 Sent = 0;
-	uint8* ResultChars = (uint8*)TCHAR_TO_UTF8(SerializedChar);
+
 	if (ConnectionSocket) {
-		return (!ConnectionSocket->Send(ResultChars, Size, Sent));
+		return (!ConnectionSocket->Send((uint8*)TCHAR_TO_UTF8(SerializedChar), Size, Sent));
 	}
 	else {
 		UE_LOG(LogSockets, Verbose, TEXT("TCPSocket>> No Client is connected. Send is not performed"));
