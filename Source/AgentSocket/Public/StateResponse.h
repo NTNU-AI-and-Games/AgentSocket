@@ -5,16 +5,17 @@
 #include "StateResponse.generated.h"
 
 
-UENUM(BlueprintType)
-enum class EStateType : uint8
+// A list of update items to update the agent environment
+USTRUCT(BlueprintType)
+struct AGENTSOCKET_API FKeyValuePair
 {
-	PLAYER,				// Player property change (such as health change, weapon swap etc)
-	PLAYER_SPAWN,		// Player spawns at location
-	PLAYER_DEATH,		// Player dead
-	//PLAYER_CHANGE_TEAM,	// If team change is possible in game
-	ITEM_CREATED,		// Building/Tree/Platform... is created
-	ITEM_DESTROYED,		// Building/Tree/Platform... is destroyed
-	GRENADE_NEARBY,
+	GENERATED_BODY()
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AgentSocket|Reward")
+		FString Key = "";
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AgentSocket|Update")
+		FString Value = "";
 };
 
 
@@ -25,11 +26,11 @@ struct AGENTSOCKET_API FStateResponse
 	GENERATED_BODY()
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AgentSocket|Reward")
-		EResponseType Type = EResponseType::STATE;
+		bool GameOver = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AgentSocket|Update")
-		EStateType StateType = EStateType::PLAYER;
+		bool GameReset = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AgentSocket|Update")
-		FString value = "";
+		TArray<FKeyValuePair> Other;
 };

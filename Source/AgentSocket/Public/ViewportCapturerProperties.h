@@ -24,7 +24,7 @@ public:
 		EColorFormat ColorFormatCompression = EColorFormat::GRAY;
 
 	// Number of times per second. This is maximum capture framerate
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ViewportCapturer)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "0.01"))
 		int32 FrameRate = 50;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ViewportCapturer)

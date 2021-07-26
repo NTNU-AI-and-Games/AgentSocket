@@ -10,13 +10,14 @@ UTCPSocket::UTCPSocket()
 	World = GetOuter()->GetWorld();
 }
 
+
 uint8 UTCPSocket::ID = 0;
 
 
 void UTCPSocket::BeginDestroy()
 {
 	Super::BeginDestroy();
-	UE_LOG(LogTemp, Warning, TEXT("TCPSocket>> Destroyed (port:%d)"), Port);
+	UE_LOG(LogTemp, Warning, TEXT("TCPSocket>> Destroyed (port:%d)"), Properties.Port);
 	if (GEngine != nullptr) {
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::Printf(TEXT("TCP_Socket>> HUH")));
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("TCP_Socket>> Destroyed (port:%d)"), Port));
@@ -31,14 +32,14 @@ void UTCPSocket::BeginDestroy()
 	if (ListenerSocket != NULL) ListenerSocket->Close();
 }
 
+
 // TCP Server Code
 bool UTCPSocket::LaunchTCP()
 {
 	// Run only on clients; will NOT run in single player / standalone
 	if (GEngine->GetNetMode(World) == NM_Client)
 	{
-		Port += ID++;
-		UE_LOG(LogSockets, Warning, TEXT("TCPSocket>> Creating TCP socket at port %d, time: %s"), Port, *(FDateTime::Now().ToString(TEXT("%Y.%m.%d-%H:%M:%S.%s"))));
+		UE_LOG(LogSockets, Warning, TEXT("TCPSocket>> Creating TCP socket at port %d, time: %s"), Properties.Port, *(FDateTime::Now().ToString(TEXT("%Y.%m.%d-%H:%M:%S.%s"))));
 		if (!StartTCPReceiver("TCP Socket")) {
 			UE_LOG(LogTemp, Warning, TEXT("TCPSocket>> Failed to create TCP socket"));
 			return false;
@@ -48,6 +49,7 @@ bool UTCPSocket::LaunchTCP()
 	return false;
 }
 
+
 // Start TCP Receiver
 bool UTCPSocket::StartTCPReceiver(const FString& SocketName) {
 	// CreateTCPConnectionListener
@@ -56,15 +58,16 @@ bool UTCPSocket::StartTCPReceiver(const FString& SocketName) {
 	if (!ListenerSocket)
 	{
 		// Possible cause: port number is already taken.
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("TCPSocket>> Listen socket could not be created! ~> %s %d"), *IP, Port));
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("TCPSocket>> Listen socket could not be created! ~> %s %d"), *Properties.IP, Properties.Port));
 		return false;
 	}
 
 	// Start the Listener
 	World->GetTimerManager().SetTimer(TCPConnectionListenerTimerHandle, this, &UTCPSocket::TCPConnectionListener, 1.0f, true);
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("TCPSocket>> TCP socket created at port %d"), Port));
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("TCPSocket>> TCP socket created at port %d"), Properties.Port));
 	return true;
 }
+
 
 // Format IPv4 String as Number Parts
 // Example "192.68.1.1" -> [192, 68, 1, 1]
@@ -88,14 +91,15 @@ bool UTCPSocket::FormatIP4ToNumber(const FString& _IP, uint8(&Out)[4])
 	return true;
 }
 
+
 // Create TCP Connection Listener
 FSocket* UTCPSocket::CreateTCPConnectionListener(const FString& SocketName, const int32 ReceiveBufferSize)
 {
 	uint8 IP4Nums[4];
-	if (!FormatIP4ToNumber(IP, IP4Nums)) return false;
+	if (!FormatIP4ToNumber(Properties.IP, IP4Nums)) return false;
 
 	// Create Socket
-	FIPv4Endpoint Endpoint(FIPv4Address(IP4Nums[0], IP4Nums[1], IP4Nums[2], IP4Nums[3]), Port);
+	FIPv4Endpoint Endpoint(FIPv4Address(IP4Nums[0], IP4Nums[1], IP4Nums[2], IP4Nums[3]), Properties.Port);
 	FSocket* ListenSocket = FTcpSocketBuilder(*SocketName)
 		.AsReusable()
 		.BoundToEndpoint(Endpoint)
@@ -107,6 +111,7 @@ FSocket* UTCPSocket::CreateTCPConnectionListener(const FString& SocketName, cons
 
 	return ListenSocket;
 }
+
 
 // TCP Connection Listener
 void UTCPSocket::TCPConnectionListener()
@@ -138,43 +143,40 @@ void UTCPSocket::TCPConnectionListener()
 			// Global cache of current Remote Address
 			RemoteAddressForConnection = FIPv4Endpoint(RemoteAddress);
 
-			World->GetTimerManager().SetTimer(TCPSocketListenerTimerHandle, this, &UTCPSocket::TCPSocketListener, 0.1f, true);
+			// Set Buffer Size
+			int32 NewSize = 0;
+			ConnectionSocket->SetSendBufferSize(2 * 1024 * 1024, NewSize);
+
+			World->GetTimerManager().SetTimer(TCPSocketListenerTimerHandle, this, &UTCPSocket::TCPSocketListener, 0.01f, true);
 		}
 	}
 }
 
+
 // String From Binary Array
 FString UTCPSocket::StringFromBinaryArray(TArray<uint8> BinaryArray)
 {
-
 	// Create a string from a byte array
 	const std::string cstr(reinterpret_cast<const char*>(BinaryArray.GetData()), BinaryArray.Num());
-
 	return FString(cstr.c_str());
-
-	// BinaryArray.Add(0); // Add 0 termination. Even if the string is already 0-terminated, it doesn't change the results.
-	// Create a string from a byte array. The string is expected to be 0 terminated (i.e. a byte set to 0).
-	// Use UTF8_TO_TCHAR if needed.
-	// If you happen to know the data is UTF-16 (USC2) formatted, you do not need any conversion to begin with.
-	// Otherwise you might have to write your own conversion algorithm to convert between multilingual UTF-16 planes.
-	// return FString(ANSI_TO_TCHAR(reinterpret_cast<const char*>(BinaryArray.GetData())));
 }
 
-bool UTCPSocket::SendMessage(FString ToSend) {
-	ToSend = ToSend + LINE_TERMINATOR; // For Matlab we need a defined line break (fscanf function) " " ist not working, therefore use the LINE_TERMINATOR macro form UE
 
+bool UTCPSocket::SendMessage(FString ToSend) {
+	ToSend = ToSend + LINE_TERMINATOR; // Add LINE_TERMINATOR macro provide better compatibility
 	TCHAR * SerializedChar = ToSend.GetCharArray().GetData();
 	int32 Size = FCString::Strlen(SerializedChar);
 	int32 Sent = 0;
-	uint8* ResultChars = (uint8*)TCHAR_TO_UTF8(SerializedChar);
+
 	if (ConnectionSocket) {
-		return (!ConnectionSocket->Send(ResultChars, Size, Sent));
+		return (!ConnectionSocket->Send((uint8*)TCHAR_TO_UTF8(SerializedChar), Size, Sent));
 	}
 	else {
 		UE_LOG(LogSockets, Verbose, TEXT("TCPSocket>> No Client is connected. Send is not performed"));
 		return false;
 	}
 }
+
 
 bool UTCPSocket::SendBinary(TArray<uint8> &BinaryArray) {
 	int32 Sent = 0;
@@ -216,6 +218,6 @@ void UTCPSocket::TCPSocketListener()
 
 void UTCPSocket::MessageReceived(const FString& Message)
 {
-	UE_LOG(LogSockets, Warning, TEXT("TCPSocket>> (Port: %d) Message received at %s"), Port, *(FDateTime::Now().ToString(TEXT("%Y.%m.%d-%H:%M:%S.%s"))));
+	UE_LOG(LogSockets, Warning, TEXT("TCPSocket>> (Port: %d) Message received at %s"), Properties.Port, *(FDateTime::Now().ToString(TEXT("%Y.%m.%d-%H:%M:%S.%s"))));
 	OnMessageReceived.Broadcast(Message);
 }
